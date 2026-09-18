@@ -1,0 +1,44 @@
+# Draft claim for JSP-000661 (do NOT submit before owner approval)
+
+Award claim form fields (see awards/CONTRIBUTING.md):
+
+## Problem-bank link
+https://github.com/TheJustinSunPrize/awards/blob/main/problems/catalog-0601-0700.md#JSP-000661
+
+## Original Lean proof repository
+https://github.com/Yi-111-a/jsp-000661
+
+- Pinned commit (40-char SHA): `44f714c9233d5ca48f40caf7852ed93c07510c3d`
+- Toolchain: `leanprover/lean4:v4.34.0` (Mathlib v4.34.0)
+- Headline theorem: `SimpleGraph.indepNumber_of_locally_large`
+  (`Jsp000661/Main.lean`)
+- Harness evidence: `HARNESS_LOG.md` in the same commit —
+  `lake build` green, 0 `sorry`/`admit`,
+  axioms = `[propext, Classical.choice, Quot.sound]` only.
+
+## What is formalized
+Alon–Sudakov, *On graphs with subgraphs having large independence numbers*
+(J. Graph Theory 55 (2007), 149–157), Theorem 2.2 direction, in explicit
+integer form:
+
+> For a finite simple graph `G` on `n` vertices, if every `s`-vertex subset
+> contains an independent set of size `t` (with `2 ≤ t`, `2t ≤ s`), then for
+> every natural `I` satisfying `s^(2I−1) ≤ n`, `G` has independence number
+> `≥ (t/2) · I`.
+
+In the Erdős–Hajnal regime `s = log³n`, `t = log n` this yields the
+`Θ(log²n / log log n)` scale of the paper's `q(n)`. The probabilistic
+upper-bound constructions (Theorems 2.3, 2.4) are documented as out of
+scope in `SCOPE.md`.
+
+## Contribution role
+Lean formalization (definitions, double-counting lemmas, iteration proof,
+build harness). Repository owner `Yi-111-a` matches the submitting GitHub
+account.
+
+## Follow-up contact email
+<TO BE FILLED BY OWNER — a public correspondence address>
+
+## Identity verification method
+Repository-owner/GitHub-account match per CONTRIBUTING.md; otherwise
+<TO BE FILLED BY OWNER if required>
