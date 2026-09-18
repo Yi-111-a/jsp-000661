@@ -30,7 +30,7 @@ LOG=HARNESS_LOG.md
   echo "## #print axioms"
   cat > /tmp/jsp_axioms.lean <<'EOF'
 import Jsp000661.Main
-#print axioms indepNumber_of_locally_large
+#print axioms SimpleGraph.indepNumber_of_locally_large
 EOF
   echo '```'
   lake env lean /tmp/jsp_axioms.lean 2>&1
