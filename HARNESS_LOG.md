@@ -1,12 +1,12 @@
 # Harness log
 
-- date: 2026-09-18T19:33:25Z
-- sha: a888d3e1ed47d765681f167f5f55394a3ed39f78
+- date: 2026-09-18T19:37:43Z
+- sha: 37fafb7f2e925db577551515140f74bacc4a469c
 - toolchain: leanprover/lean4:v4.34.0
 
 ## lake build
 ```
-⚠ [1079/1114] Replayed Jsp000661.Defs
+⚠ [1080/1115] Replayed Jsp000661.Defs
 warning: Jsp000661/Defs.lean:28:0: automatically included section variable(s) unused in theorem `SimpleGraph.LocallyLargeIndep.on`:
   [DecidableEq V]
   [DecidableRel G.Adj]
@@ -20,15 +20,13 @@ consider restructuring your `variable` declarations so that the variables are no
   omit [DecidableEq V] in theorem ...
 
 Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
-⚠ [3113/3116] Built Jsp000661.Counting (143s)
+⚠ [3113/3116] Replayed Jsp000661.Counting
 warning: Jsp000661/Counting.lean:40:0: automatically included section variable(s) unused in theorem `SimpleGraph.indepSets_card_lower`:
   [DecidableRel G.Adj]
 consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
   omit [DecidableRel G.Adj] in theorem ...
 
 Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
-✔ [3114/3116] Built Jsp000661.Main (10s)
-✔ [3115/3116] Built Jsp000661 (9.5s)
 Build completed successfully (3116 jobs).
 exit=0
 ```

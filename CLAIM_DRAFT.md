@@ -8,7 +8,7 @@ https://github.com/TheJustinSunPrize/awards/blob/main/problems/catalog-0601-0700
 ## Original Lean proof repository
 https://github.com/Yi-111-a/jsp-000661
 
-- Pinned commit (40-char SHA): `<SHA of the strengthened-theorem commit — fill after push>`
+- Pinned commit (40-char SHA): `37fafb7f2e925db577551515140f74bacc4a469c`
 - Toolchain: `leanprover/lean4:v4.34.0` (Mathlib v4.34.0)
 - Headline theorem: `SimpleGraph.indepNumber_of_locally_large`
   (`Jsp000661/Main.lean`)
