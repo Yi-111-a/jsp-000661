@@ -1,0 +1,25 @@
+problem_id: JSP-000661
+title: "On graphs with subgraphs having large independence numbers"
+paper:
+  authors: [Noga Alon, Benny Sudakov]
+  venue: "Journal of Graph Theory 56 (2007), 149-157"
+  arxiv: "0706.4099"
+  doi: "10.1002/JGT.20264"
+headline:
+  name: indepNumber_of_locally_large
+  file: Jsp000661/Main.lean
+  corresponds_to: "Alon-Sudakov Theorem 2.2 (explicit quantitative form)"
+toolchain:
+  lean: "leanprover/lean4:v4.34.0"
+  mathlib: "v4.34.0"
+harness:
+  build: "lake build"
+  sorry_check: "scripts/harness.sh"
+  axioms: ["Classical.choice", "Quot.sound", "propext"]
+scope:
+  formalized: ["Theorem 2.2 (lower bound, explicit form)"]
+  excluded:
+    - "Theorem 2.1 (needs Ramsey-number bound)"
+    - "Theorems 2.3, 2.4 (probabilistic constructions)"
+    - "Section 4 Ramsey-type corollary"
+status: in_progress
