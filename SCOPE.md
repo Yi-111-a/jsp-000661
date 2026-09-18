@@ -7,9 +7,12 @@
 - **Theorem 2.2 (Alon–Sudakov), explicit quantitative form** — the lower-bound
   direction that answers the catalog question ("how large an independent set must
   the whole graph have?"). Formalized as `indepNumber_of_locally_large`
-  (`Jsp000661/Main.lean`), giving for every `I` with `s^(2I−1) ≤ n` an independent
-  set of size `≥ (t/2)·I`. For `s = Θ(log³ n)`, `t = Θ(log n)` this yields
-  `α(G) ≥ Ω(log² n / log log n)`, matching the paper's `q(n)` lower bound.
+  (`Jsp000661/Main.lean`), giving for every `I` with
+  `s·(36s²)^(I−1) ≤ n·t^(2(I−1))` an independence number `≥ (t/2)·I`. The
+  per-round residual bound `|W|·t² ≤ 36·s²·|W'|` keeps the paper's `t²/(4e²s²)`
+  decay (integer `e`-proxy `3`), so for `s = Θ(log³ n)`, `t = Θ(log n)` this
+  yields `α(G) ≥ Ω(log² n / log log n)`, matching the paper's `q(n)` lower bound
+  in all parameter regimes up to the explicit constant `36` vs `4e²`.
 
 ## Out of scope (documented, not formalized)
 

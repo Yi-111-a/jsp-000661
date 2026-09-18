@@ -52,20 +52,25 @@ Motivating instance (Erdős–Hajnal): `s = log³ n`, `t = log n`. The paper pro
 The Lean development proves a fully explicit (no asymptotic notation) form of
 Theorem 2.2's content. Writing `b = ⌊t/2⌋`, the proof in the paper iterates a
 deterministic peeling step `I` times while the residual set has ≥ `s` vertices, each
-round contributing `b` vertices to a global independent set. Quantifying the iteration
-bound gives the headline theorem:
+round contributing `b` vertices to a global independent set. Each round shrinks the
+residual by a factor `≤ 36·s²/t²` — the paper's `4e²s²/t²` with `3` as an integer
+`e`-proxy (`4e² ≈ 29.6 ≤ 36`), obtained via the sharp binomial bounds
+`t^b ≤ b^b·C(t,b)`, `C(m,b)·b^b ≤ (3m)^b` and the factorial bound `b^b ≤ 3^b·b!`
+(equivalently `(1+1/b)^b ≤ 3`), all proved elementarily in `Counting.lean`.
+Quantifying the iteration gives the headline theorem:
 
 ```lean
 theorem indepNumber_of_locally_large {n s t : ℕ}
-    (ht : 2 ≤ t) (hst : 2 * t ≤ s) (hsn : 2 * s < n)
+    (ht : 2 ≤ t) (hst : 2 * t ≤ s)
     (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]
-    (hlocal : ∀ U : Finset (Fin n), U.card = s →
-      ∃ J ⊆ U, J.card = t ∧ G.IsIndepSet J)
-    (I : ℕ) (hI : s ^ (2 * I - 1) ≤ n) :
-    ∃ J : Finset (Fin n), J.card ≥ (t / 2) * I ∧ G.IsIndepSet J
+    (hlocal : G.LocallyLargeIndep s t)      -- every s-subset has an independent t-set
+    (I : ℕ) (hI : s * (36 * s ^ 2) ^ (I - 1) ≤ n * t ^ (2 * (I - 1))) :
+    (t / 2) * I ≤ G.indepNum
 ```
 
 For the Erdős–Hajnal parameters `s = Θ(log³ n)`, `t = Θ(log n)` one may take
 `I = Θ(log n / log log n)`, recovering `α(G) ≥ Ω(log² n / log log n)` — the same order
-as the paper's lower bound for `q(n)`. See `SCOPE.md` for what is and is not
-formalized.
+as the paper's lower bound for `q(n)`. Because the per-round decay keeps the `t²`
+factor, the bound also matches the paper's `t·log(n/s)/log(s²/t²)` shape (constant
+`36` vs `4e²`) in every parameter regime, not just the principal one. See `SCOPE.md`
+for what is and is not formalized.

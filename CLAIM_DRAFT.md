@@ -8,7 +8,7 @@ https://github.com/TheJustinSunPrize/awards/blob/main/problems/catalog-0601-0700
 ## Original Lean proof repository
 https://github.com/Yi-111-a/jsp-000661
 
-- Pinned commit (40-char SHA): `44f714c9233d5ca48f40caf7852ed93c07510c3d`
+- Pinned commit (40-char SHA): `<SHA of the strengthened-theorem commit — fill after push>`
 - Toolchain: `leanprover/lean4:v4.34.0` (Mathlib v4.34.0)
 - Headline theorem: `SimpleGraph.indepNumber_of_locally_large`
   (`Jsp000661/Main.lean`)
@@ -23,10 +23,13 @@ integer form:
 
 > For a finite simple graph `G` on `n` vertices, if every `s`-vertex subset
 > contains an independent set of size `t` (with `2 ≤ t`, `2t ≤ s`), then for
-> every natural `I` satisfying `s^(2I−1) ≤ n`, `G` has independence number
-> `≥ (t/2) · I`.
+> every natural `I` satisfying `s·(36s²)^(I−1) ≤ n·t^(2(I−1))`, `G` has
+> independence number `≥ (t/2) · I`.
 
-In the Erdős–Hajnal regime `s = log³n`, `t = log n` this yields the
+The iteration keeps the paper's `t²/(4e²s²)` per-round decay factor (integer
+`e`-proxy `3`, giving the explicit constant `36`), so the bound matches
+Theorem 2.2's `t·log(n/s)/log(s²/t²)` shape in all parameter regimes. In the
+Erdős–Hajnal regime `s = log³n`, `t = log n` this yields the
 `Θ(log²n / log log n)` scale of the paper's `q(n)`. The probabilistic
 upper-bound constructions (Theorems 2.3, 2.4) are documented as out of
 scope in `SCOPE.md`.

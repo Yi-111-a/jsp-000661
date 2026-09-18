@@ -1,5 +1,7 @@
 import Jsp000661.Defs
 import Mathlib.Data.Nat.Choose.Bounds
+import Mathlib.Data.Nat.Choose.Sum
+import Mathlib.Algebra.Ring.GeomSum
 import Mathlib.Tactic
 
 /-!
@@ -14,7 +16,10 @@ The heart of Alon–Sudakov Theorem 2.2, in fully explicit integer form.
   (the product form of `C(m,t)/C(s,t) ≥ (m/s)^t`).
 * `peel_step`: the iteration step — from `W` with `|W| ≥ s` extract an
   independent `X` of size `t/2` and a residual `W' ⊆ W ∖ X` with no edges to `X`
-  and `|W| ≤ s² · |W'|`.
+  and `|W|·t² ≤ 36·s²·|W'|`. This is the paper's `t²/(4e²s²)` decay factor with
+  `3` as an integer `e`-proxy, via the sharp binomial estimates
+  `t^b ≤ b^b·C(t,b)` and `C(m,b)·b^b ≤ (3m)^b` (the latter through
+  `b^b ≤ 3^b·b!`).
 -/
 
 open Finset
@@ -105,17 +110,169 @@ theorem choose_pow_mul_le {m s t : ℕ} (hsm : s ≤ m) :
       _ = t.factorial * (s ^ t * Nat.choose m t) := by ring
   exact Nat.le_of_mul_le_mul_left h' (Nat.factorial_pos t)
 
+/-! ### Factorial bound `b^b ≤ 3^b · b!` -/
+
+/-- `∏_{i < k} (n - i) = n.descFactorial k`. -/
+theorem prod_range_sub_eq_descFactorial (n k : ℕ) :
+    ∏ i ∈ Finset.range k, (n - i) = n.descFactorial k := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [Finset.prod_range_succ, ih, Nat.descFactorial_succ, mul_comm]
+
+/-- `2^j ≤ (j+1)!`. -/
+theorem two_pow_le_factorial_succ : ∀ j : ℕ, 2 ^ j ≤ (j + 1).factorial := by
+  intro j
+  induction j with
+  | zero => simp
+  | succ j ih =>
+    calc 2 ^ (j + 1) = 2 * 2 ^ j := pow_succ' 2 j
+      _ ≤ 2 * (j + 1).factorial := Nat.mul_le_mul le_rfl ih
+      _ ≤ (j + 2) * (j + 1).factorial := Nat.mul_le_mul (by omega) le_rfl
+      _ = (j + 2).factorial := (Nat.factorial_succ _).symm
+
+/-- The `j`-th binomial term of `(b+1)^b` decays geometrically:
+`C(b,j)·b^{b-j}·2^{j-1} ≤ b^b` for `1 ≤ j ≤ b`. -/
+theorem choose_mul_pow_mul_two_pow_le {b j : ℕ} (hj : 1 ≤ j) (hjb : j ≤ b) :
+    Nat.choose b j * b ^ (b - j) * 2 ^ (j - 1) ≤ b ^ b := by
+  have hdesc : Nat.choose b j * j.factorial = b.descFactorial j := by
+    rw [Nat.descFactorial_eq_factorial_mul_choose, mul_comm]
+  have h2j : 2 ^ (j - 1) ≤ j.factorial := by
+    obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_le hj
+    rw [show 1 + j - 1 = j from by omega, show 1 + j = j + 1 from by omega]
+    exact two_pow_le_factorial_succ j
+  have key : Nat.choose b j * b ^ (b - j) * 2 ^ (j - 1) * j.factorial
+      ≤ b ^ b * j.factorial := by
+    calc Nat.choose b j * b ^ (b - j) * 2 ^ (j - 1) * j.factorial
+        = (Nat.choose b j * j.factorial) * b ^ (b - j) * 2 ^ (j - 1) := by ring
+      _ = b.descFactorial j * b ^ (b - j) * 2 ^ (j - 1) := by rw [hdesc]
+      _ ≤ b ^ j * b ^ (b - j) * 2 ^ (j - 1) :=
+          Nat.mul_le_mul (Nat.mul_le_mul (Nat.descFactorial_le_pow b j) le_rfl) le_rfl
+      _ = b ^ b * 2 ^ (j - 1) := by
+          rw [← pow_add, Nat.add_sub_cancel' hjb]
+      _ ≤ b ^ b * j.factorial := Nat.mul_le_mul le_rfl h2j
+  exact Nat.le_of_mul_le_mul_right key (Nat.factorial_pos j)
+
+/-- `∑_{j<b} 2^j = 2^b − 1`. -/
+theorem geom_sum_two (b : ℕ) : ∑ j ∈ Finset.range b, 2 ^ j = 2 ^ b - 1 := by
+  induction b with
+  | zero => simp
+  | succ b ih =>
+    rw [Finset.sum_range_succ, ih, pow_succ' _ _]
+    omega
+
+/-- `(b+1)^b ≤ 3·b^b`, the integer form of `(1+1/b)^b ≤ 3`. -/
+theorem add_one_pow_le_three_mul_pow (b : ℕ) : (b + 1) ^ b ≤ 3 * b ^ b := by
+  rcases Nat.eq_zero_or_pos b with hb | hb
+  · subst hb; simp
+  have e : (b + 1) ^ b = ∑ k ∈ Finset.range (b + 1), Nat.choose b k * b ^ k := by
+    rw [add_pow]
+    apply Finset.sum_congr rfl
+    intro k _
+    rw [one_pow, mul_one]
+    exact Nat.mul_comm _ _
+  rw [e]
+  have reidx : ∑ k ∈ Finset.range (b + 1), Nat.choose b k * b ^ k
+      = ∑ j ∈ Finset.range (b + 1), Nat.choose b j * b ^ (b - j) := by
+    rw [← Finset.sum_range_reflect (fun k => Nat.choose b k * b ^ k) (b + 1)]
+    apply Finset.sum_congr rfl
+    intro k hk
+    have hkb : k ≤ b := Nat.le_of_lt_succ (Finset.mem_range.mp hk)
+    rw [show b + 1 - 1 - k = b - k from by omega, Nat.choose_symm hkb]
+  rw [reidx, Finset.sum_range_succ']
+  have h0 : Nat.choose b 0 * b ^ (b - 0) = b ^ b := by simp
+  rw [h0]
+  have hsum : ∑ j ∈ Finset.range b, Nat.choose b (j + 1) * b ^ (b - (j + 1))
+      ≤ 2 * b ^ b := by
+    have hw : ∀ j ∈ Finset.range b,
+        Nat.choose b (j + 1) * b ^ (b - (j + 1)) * 2 ^ (b - 1)
+          ≤ b ^ b * 2 ^ (b - 1 - j) := by
+      intro j hj
+      have hjb : j + 1 ≤ b := Nat.succ_le_of_lt (Finset.mem_range.mp hj)
+      have hmain := choose_mul_pow_mul_two_pow_le (b := b) (j := j + 1) (by omega) hjb
+      calc Nat.choose b (j + 1) * b ^ (b - (j + 1)) * 2 ^ (b - 1)
+          = (Nat.choose b (j + 1) * b ^ (b - (j + 1)) * 2 ^ ((j + 1) - 1))
+              * 2 ^ (b - 1 - j) := by
+            have e2 : (2 : ℕ) ^ (b - 1) = 2 ^ ((j + 1) - 1) * 2 ^ (b - 1 - j) := by
+              rw [← pow_add]; congr 1; omega
+            rw [e2]; ring
+        _ ≤ b ^ b * 2 ^ (b - 1 - j) := Nat.mul_le_mul hmain le_rfl
+    have hsumw : (∑ j ∈ Finset.range b, Nat.choose b (j + 1) * b ^ (b - (j + 1)))
+          * 2 ^ (b - 1) ≤ (2 * b ^ b) * 2 ^ (b - 1) := by
+      rw [Finset.sum_mul]
+      calc ∑ j ∈ Finset.range b, Nat.choose b (j + 1) * b ^ (b - (j + 1)) * 2 ^ (b - 1)
+          ≤ ∑ j ∈ Finset.range b, b ^ b * 2 ^ (b - 1 - j) := Finset.sum_le_sum hw
+        _ = b ^ b * ∑ j ∈ Finset.range b, 2 ^ (b - 1 - j) := by rw [Finset.mul_sum]
+        _ = b ^ b * ∑ j ∈ Finset.range b, 2 ^ j := by
+            congr 1
+            exact Finset.sum_range_reflect (fun j => 2 ^ j) b
+        _ = b ^ b * (2 ^ b - 1) := by
+            congr 1
+            exact geom_sum_two b
+        _ ≤ b ^ b * 2 ^ b := Nat.mul_le_mul le_rfl (Nat.sub_le _ _)
+        _ = (2 * b ^ b) * 2 ^ (b - 1) := by
+            have e2b : (2 : ℕ) ^ b = 2 * 2 ^ (b - 1) := by
+              conv_lhs => rw [show b = b - 1 + 1 from by omega]
+              rw [pow_succ']
+            rw [e2b]; ring
+    exact Nat.le_of_mul_le_mul_right hsumw (Nat.pow_pos (by omega : 0 < 2))
+  calc ∑ j ∈ Finset.range b, Nat.choose b (j + 1) * b ^ (b - (j + 1)) + b ^ b
+      ≤ 2 * b ^ b + b ^ b := Nat.add_le_add hsum le_rfl
+    _ = 3 * b ^ b := by ring
+
+/-- **Factorial lower bound**: `b^b ≤ 3^b · b!`. -/
+theorem pow_le_three_pow_factorial (b : ℕ) : b ^ b ≤ 3 ^ b * b.factorial := by
+  induction b with
+  | zero => simp
+  | succ b ih =>
+    calc (b + 1) ^ (b + 1) = (b + 1) * (b + 1) ^ b := pow_succ' _ _
+      _ ≤ (b + 1) * (3 * b ^ b) := Nat.mul_le_mul le_rfl (add_one_pow_le_three_mul_pow b)
+      _ ≤ (b + 1) * (3 * (3 ^ b * b.factorial)) :=
+          Nat.mul_le_mul le_rfl (Nat.mul_le_mul le_rfl ih)
+      _ = 3 ^ (b + 1) * (b + 1).factorial := by
+          rw [Nat.factorial_succ, pow_succ']; ring
+
+/-- `t^b ≤ b^b · C(t,b)` for `b ≤ t`, the product form of `(t/b)^b ≤ C(t,b)`. -/
+theorem pow_le_pow_mul_choose {t b : ℕ} (hbt : b ≤ t) :
+    t ^ b ≤ b ^ b * Nat.choose t b := by
+  classical
+  have key : ∏ i ∈ Finset.range b, (t * (b - i)) ≤ ∏ i ∈ Finset.range b, (b * (t - i)) := by
+    apply Finset.prod_le_prod
+    intro i hi
+    have hbi : i ≤ b := (Finset.mem_range.mp hi).le
+    have hit : i ≤ t := hbi.trans hbt
+    have e1 : t * (b - i) + t * i = t * b := by
+      rw [← Nat.mul_add, Nat.sub_add_cancel hbi]
+    have e2 : b * (t - i) + b * i = b * t := by
+      rw [← Nat.mul_add, Nat.sub_add_cancel hit]
+    calc t * (b - i) = t * b - t * i := by omega
+      _ ≤ t * b - b * i := Nat.sub_le_sub_left (Nat.mul_le_mul hbt le_rfl) _
+      _ = b * (t - i) := by
+          have hcomm : t * b = b * t := Nat.mul_comm _ _
+          omega
+  rw [Finset.prod_mul_distrib, Finset.prod_mul_distrib, Finset.prod_const,
+    Finset.prod_const, Finset.card_range] at key
+  rw [prod_range_sub_eq_descFactorial, prod_range_sub_eq_descFactorial,
+    Nat.descFactorial_eq_factorial_mul_choose,
+    Nat.descFactorial_eq_factorial_mul_choose, Nat.choose_self, mul_one] at key
+  have h' : b.factorial * t ^ b ≤ b.factorial * (b ^ b * Nat.choose t b) := by
+    calc b.factorial * t ^ b = t ^ b * b.factorial := by ring
+      _ ≤ b ^ b * (b.factorial * Nat.choose t b) := key
+      _ = b.factorial * (b ^ b * Nat.choose t b) := by ring
+  exact Nat.le_of_mul_le_mul_left h' (Nat.factorial_pos b)
+
 /-! ### The peeling step -/
 
 /-- **Peeling step.**  If `|W| ≥ s` and every `s`-subset of `W` contains an
 independent `t`-set, there is an independent `X ⊆ W` of size `t/2` and a set
-`W' ⊆ W` disjoint from `X` with no `X`–`W'` edges and `|W| ≤ s²·|W'|`. -/
+`W' ⊆ W` disjoint from `X` with no `X`–`W'` edges and
+`|W|·t² ≤ 36·s²·|W'|` — the paper's `t²/(4e²s²)` decay, `e`↦`3`. -/
 theorem peel_step {W : Finset V} {s t : ℕ}
     (ht : 2 ≤ t) (hst : 2 * t ≤ s) (hW : s ≤ W.card)
     (hloc : G.LocallyLargeIndepOn W s t) :
     ∃ X W' : Finset V, X ⊆ W ∧ W' ⊆ W ∧ Disjoint X W' ∧ X.card = t / 2 ∧
       G.IsIndepSet X ∧ (∀ x ∈ X, ∀ y ∈ W', ¬ G.Adj x y) ∧
-      W.card ≤ W'.card * s ^ 2 := by
+      W.card * t ^ 2 ≤ W'.card * (36 * s ^ 2) := by
   classical
   set b := t / 2
   set r := t - t / 2
@@ -214,8 +371,9 @@ theorem peel_step {W : Finset V} {s t : ℕ}
     have hXI : X ⊆ I := (mem_filter.mp hI).2
     have hyI' : y ∈ I := (mem_sdiff.mp hyI).1
     exact hIi (hXI hx) hyI' (fun h => (mem_sdiff.mp hyI).2 (h ▸ hx)) hxy
-  -- (6) cardinalities: `ℐ.card ≤ |W'|^r`, then the final `m ≤ s²·|W'|`.
-  · have hcard : ℐ.card ≤ W'.card ^ r := by
+  -- (6) cardinalities: `ℐ.card ≤ C(|W'|, r)`, then the sharper
+  -- `m·t² ≤ 36·s²·|W'|` (paper's `t²/(4e²s²)` factor with `3` as an `e`-proxy).
+  · have hchoose : ℐ.card ≤ Nat.choose W'.card r := by
       have hinj : Set.InjOn (· \ X) ℐ := by
         intro I₁ hI₁ I₂ hI₂ h
         have hXI₁ : X ⊆ I₁ := (mem_filter.mp (mem_coe.mp hI₁)).2
@@ -236,62 +394,138 @@ theorem peel_step {W : Finset V} {s t : ℕ}
       have hle : ℐ.card ≤ (W'.powersetCard r).card :=
         card_le_card_of_injOn (· \ X) hmaps hinj
       rw [card_powersetCard] at hle
-      exact hle.trans (Nat.choose_le_pow _ _)
-    -- algebra: `m^r ≤ |W'|^r · s^t`, then take `r`-th roots.
-    have key : m ^ r ≤ W'.card ^ r * s ^ t := by
-      have e4 : m ^ t ≤ (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * s ^ t := by
-        have step1 : Nat.choose t b * (m ^ t * Nat.choose s t)
-            ≤ (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * Nat.choose s t * s ^ t := by
-          calc Nat.choose t b * (m ^ t * Nat.choose s t)
-              ≤ Nat.choose t b * (s ^ t * Nat.choose m t) :=
-                Nat.mul_le_mul le_rfl (choose_pow_mul_le hW)
-            _ = s ^ t * Nat.choose t b * Nat.choose m t := by ring
-            _ ≤ s ^ t * Nat.choose t b * (𝒩.card * Nat.choose s t) :=
-                Nat.mul_le_mul le_rfl hN
-            _ = s ^ t * Nat.choose s t * (𝒩.card * Nat.choose t b) := by ring
-            _ ≤ s ^ t * Nat.choose s t *
-                  ((𝒩.filter (X ⊆ ·)).card * Nat.choose m b) :=
-                Nat.mul_le_mul le_rfl hXc
-            _ = (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * Nat.choose s t * s ^ t :=
-                by ring
-        have step2 : m ^ t * Nat.choose s t
-            ≤ (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * Nat.choose s t * s ^ t :=
-          le_trans
-            (le_mul_of_one_le_left (Nat.zero_le _)
-              (Nat.pos_of_ne_zero (Nat.choose_ne_zero hbt)))
-            step1
-        have hpos_st : 0 < Nat.choose s t :=
-          Nat.pos_of_ne_zero (Nat.choose_ne_zero hts)
-        have step3 : (m ^ t) * Nat.choose s t
-            ≤ ((𝒩.filter (X ⊆ ·)).card * Nat.choose m b * s ^ t) * Nat.choose s t := by
-          calc (m ^ t) * Nat.choose s t
-              ≤ (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * Nat.choose s t * s ^ t :=
-                step2
-            _ = ((𝒩.filter (X ⊆ ·)).card * Nat.choose m b * s ^ t) * Nat.choose s t :=
-                by ring
-        exact Nat.le_of_mul_le_mul_right step3 hpos_st
-      have e5 : m ^ r ≤ (𝒩.filter (X ⊆ ·)).card * s ^ t := by
-        have hCmb : Nat.choose m b ≤ m ^ b := Nat.choose_le_pow m b
-        have e6 : m ^ b * m ^ r
-            ≤ (𝒩.filter (X ⊆ ·)).card * m ^ b * s ^ t := by
-          calc m ^ b * m ^ r = m ^ (b + r) := (pow_add m b r).symm
-            _ = m ^ t := by rw [hbr]
-            _ ≤ (𝒩.filter (X ⊆ ·)).card * Nat.choose m b * s ^ t := e4
-            _ ≤ (𝒩.filter (X ⊆ ·)).card * m ^ b * s ^ t :=
-                Nat.mul_le_mul (Nat.mul_le_mul le_rfl hCmb) le_rfl
-        rw [show (𝒩.filter (X ⊆ ·)).card * m ^ b * s ^ t
-            = m ^ b * ((𝒩.filter (X ⊆ ·)).card * s ^ t) from by ring] at e6
-        exact Nat.le_of_mul_le_mul_left e6 (Nat.pow_pos hm)
-      calc m ^ r ≤ (𝒩.filter (X ⊆ ·)).card * s ^ t := e5
-        _ ≤ W'.card ^ r * s ^ t := Nat.mul_le_mul hcard le_rfl
-    have hroot : m ≤ W'.card * s ^ 2 := by
-      have hpow : m ^ r ≤ (W'.card * s ^ 2) ^ r := by
-        calc m ^ r ≤ W'.card ^ r * s ^ t := key
-          _ ≤ W'.card ^ r * s ^ (2 * r) :=
-              Nat.mul_le_mul le_rfl (Nat.pow_le_pow_right hs hr2)
-          _ = (W'.card * s ^ 2) ^ r := by
-              rw [mul_pow, ← pow_mul]
-      exact (Nat.pow_le_pow_iff_left (by omega : r ≠ 0)).mp hpow
-    exact hroot
+      exact hle
+    -- `N·s^t ≥ m^t` from the double count and the ratio bound.
+    have hNst : m ^ t ≤ 𝒩.card * s ^ t := by
+      have key2 : m ^ t * Nat.choose s t ≤ (𝒩.card * s ^ t) * Nat.choose s t := by
+        calc m ^ t * Nat.choose s t ≤ s ^ t * Nat.choose m t := choose_pow_mul_le hW
+          _ ≤ s ^ t * (𝒩.card * Nat.choose s t) := Nat.mul_le_mul le_rfl hN
+          _ = (𝒩.card * s ^ t) * Nat.choose s t := by ring
+      exact Nat.le_of_mul_le_mul_right key2 (Nat.pos_of_ne_zero (Nat.choose_ne_zero hts))
+    -- `c·3^b·s^t ≥ m^r·t^b`, keeping the `C(t,b)/C(m,b)` ratio sharp.
+    have hc : m ^ r * t ^ b ≤ ℐ.card * 3 ^ b * s ^ t := by
+      have e1 : Nat.choose m b * b ^ b ≤ (3 * m) ^ b := by
+        calc Nat.choose m b * b ^ b
+            ≤ Nat.choose m b * (3 ^ b * b.factorial) :=
+              Nat.mul_le_mul le_rfl (pow_le_three_pow_factorial b)
+          _ = 3 ^ b * (b.factorial * Nat.choose m b) := by ring
+          _ = 3 ^ b * m.descFactorial b := by
+              rw [Nat.descFactorial_eq_factorial_mul_choose]
+          _ ≤ 3 ^ b * m ^ b := Nat.mul_le_mul le_rfl (Nat.descFactorial_le_pow _ _)
+          _ = (3 * m) ^ b := (mul_pow _ _ _).symm
+      have e2 : m ^ b * (m ^ r * t ^ b) ≤ m ^ b * (ℐ.card * 3 ^ b * s ^ t) := by
+        have hL1 : t ^ b ≤ b ^ b * Nat.choose t b := pow_le_pow_mul_choose hbt
+        calc m ^ b * (m ^ r * t ^ b) = m ^ t * t ^ b := by
+              rw [← mul_assoc, ← pow_add, hbr]
+          _ ≤ (𝒩.card * s ^ t) * t ^ b := Nat.mul_le_mul hNst le_rfl
+          _ = 𝒩.card * (t ^ b * s ^ t) := by ring
+          _ ≤ 𝒩.card * ((b ^ b * Nat.choose t b) * s ^ t) :=
+              Nat.mul_le_mul le_rfl (Nat.mul_le_mul hL1 le_rfl)
+          _ = (𝒩.card * Nat.choose t b) * (b ^ b * s ^ t) := by ring
+          _ ≤ (ℐ.card * Nat.choose m b) * (b ^ b * s ^ t) :=
+              Nat.mul_le_mul hXc le_rfl
+          _ = ℐ.card * ((Nat.choose m b * b ^ b) * s ^ t) := by ring
+          _ ≤ ℐ.card * ((3 * m) ^ b * s ^ t) :=
+              Nat.mul_le_mul le_rfl (Nat.mul_le_mul e1 le_rfl)
+          _ = m ^ b * (ℐ.card * 3 ^ b * s ^ t) := by rw [mul_pow]; ring
+      exact Nat.le_of_mul_le_mul_left e2 (Nat.pow_pos hm)
+    -- `(3|W'|)^r ≥ r^r·c`, where `r^r ≤ 3^r·r!` supplies the missing `t` factor.
+    have hW' : r ^ r * ℐ.card ≤ (3 * W'.card) ^ r := by
+      calc r ^ r * ℐ.card ≤ r ^ r * Nat.choose W'.card r :=
+            Nat.mul_le_mul le_rfl hchoose
+        _ ≤ (3 ^ r * r.factorial) * Nat.choose W'.card r :=
+            Nat.mul_le_mul (pow_le_three_pow_factorial r) le_rfl
+        _ = 3 ^ r * (r.factorial * Nat.choose W'.card r) := by ring
+        _ = 3 ^ r * W'.card.descFactorial r := by
+            rw [Nat.descFactorial_eq_factorial_mul_choose]
+        _ ≤ 3 ^ r * W'.card ^ r := Nat.mul_le_mul le_rfl (Nat.descFactorial_le_pow _ _)
+        _ = (3 * W'.card) ^ r := (mul_pow _ _ _).symm
+    -- `(rm)^r · t^b ≤ (3|W'|)^r · 3^b · s^t` (★).
+    have hstar : (r * m) ^ r * t ^ b ≤ (3 * W'.card) ^ r * 3 ^ b * s ^ t := by
+      calc (r * m) ^ r * t ^ b = r ^ r * (m ^ r * t ^ b) := by
+            rw [mul_pow, mul_assoc]
+        _ ≤ r ^ r * (ℐ.card * 3 ^ b * s ^ t) := Nat.mul_le_mul le_rfl hc
+        _ = (r ^ r * ℐ.card) * 3 ^ b * s ^ t := by ring
+        _ ≤ (3 * W'.card) ^ r * 3 ^ b * s ^ t :=
+            Nat.mul_le_mul (Nat.mul_le_mul hW' le_rfl) le_rfl
+    -- case on the parity of `t` and take `r`-th roots.
+    rcases (show t = 2 * b ∨ t = 2 * b + 1 from by omega) with htE | htO
+    · -- even `t = 2b`: `(rmt)^r ≤ (9|W'|s²)^r`, so `mt² ≤ 18|W'|s²`.
+      have hrr : r = b := by omega
+      have hp : (r * m * t) ^ r ≤ (9 * W'.card * s ^ 2) ^ r := by
+        calc (r * m * t) ^ r = (r * m) ^ r * t ^ r := by rw [mul_pow]
+          _ = (r * m) ^ r * t ^ b := by rw [show t ^ r = t ^ b from by rw [hrr]]
+          _ ≤ (3 * W'.card) ^ r * 3 ^ b * s ^ t := hstar
+          _ = (9 * W'.card * s ^ 2) ^ r := by
+              rw [show t = 2 * r from by omega, pow_mul, ← hrr,
+                show (9 * W'.card * s ^ 2) ^ r
+                  = (3 * W'.card) ^ r * (3 * s ^ 2) ^ r from by
+                    rw [show 9 * W'.card * s ^ 2 = 3 * W'.card * (3 * s ^ 2) from by ring,
+                      mul_pow],
+                mul_pow]
+              ring
+      have hroot : r * m * t ≤ 9 * W'.card * s ^ 2 :=
+        (Nat.pow_le_pow_iff_left (by omega : r ≠ 0)).mp hp
+      calc m * t ^ 2 = 2 * (r * m * t) := by
+            rw [show m * t ^ 2 = m * t * t from by ring,
+              show t = 2 * r from by omega]
+            ring
+        _ ≤ 2 * (9 * W'.card * s ^ 2) := Nat.mul_le_mul le_rfl hroot
+        _ = 18 * (W'.card * s ^ 2) := by ring
+        _ ≤ W'.card * (36 * s ^ 2) := by
+            calc 18 * (W'.card * s ^ 2) = W'.card * s ^ 2 * 18 := by ring
+              _ ≤ W'.card * s ^ 2 * 36 :=
+                  Nat.mul_le_mul le_rfl (by omega : 18 ≤ 36)
+              _ = W'.card * (36 * s ^ 2) := by ring
+    · -- odd `t = 2b+1`: `(36|W'|s²)^r·3^{r-1} ≥ (mt²)^r·3^{r-1}`.
+      have hrb : b = r - 1 ∧ t = 2 * r - 1 := by omega
+      have hstar' : (r * m) ^ r * t ^ (r - 1)
+          ≤ (3 * W'.card) ^ r * 3 ^ (r - 1) * s ^ (2 * r - 1) := by
+        rw [← hrb.1, ← hrb.2]
+        exact hstar
+      have h12 : 3 ^ (r - 1) * t ^ (r + 1) ≤ (12 * r) ^ r * s := by
+        have e1 : (3 * t) ^ r ≤ (12 * r) ^ r := Nat.pow_le_pow_left (by omega) r
+        have e2 : 3 ^ (r - 1) * t ^ (r + 1) ≤ 3 ^ r * t ^ r * t := by
+          calc 3 ^ (r - 1) * t ^ (r + 1)
+              = (3 ^ (r - 1) * t ^ r) * t := by rw [pow_succ']; ring
+            _ ≤ (3 ^ r * t ^ r) * t :=
+                Nat.mul_le_mul
+                  (Nat.mul_le_mul (Nat.pow_le_pow_right (by omega) (Nat.sub_le r 1))
+                    le_rfl)
+                  le_rfl
+        calc 3 ^ (r - 1) * t ^ (r + 1) ≤ (3 * t) ^ r * t := by
+              calc 3 ^ (r - 1) * t ^ (r + 1) ≤ 3 ^ r * t ^ r * t := e2
+                _ = (3 * t) ^ r * t := by rw [mul_pow]
+          _ ≤ (12 * r) ^ r * s := Nat.mul_le_mul e1 (by omega)
+      have hfin : (m * t ^ 2) ^ r * 3 ^ (r - 1)
+          ≤ (W'.card * (36 * s ^ 2)) ^ r * 3 ^ (r - 1) := by
+        calc (m * t ^ 2) ^ r * 3 ^ (r - 1)
+            = m ^ r * t ^ (r - 1) * (3 ^ (r - 1) * t ^ (r + 1)) := by
+              rw [mul_pow, ← pow_mul,
+                show t ^ (2 * r) = t ^ (r - 1) * t ^ (r + 1) from by
+                  rw [← pow_add]; congr 1; omega]
+              ring
+          _ ≤ m ^ r * t ^ (r - 1) * ((12 * r) ^ r * s) := Nat.mul_le_mul le_rfl h12
+          _ = ((r * m) ^ r * t ^ (r - 1)) * (12 ^ r * s) := by
+              rw [mul_pow, mul_pow]; ring
+          _ ≤ ((3 * W'.card) ^ r * 3 ^ (r - 1) * s ^ (2 * r - 1)) * (12 ^ r * s) :=
+              Nat.mul_le_mul hstar' le_rfl
+          _ = (W'.card * (36 * s ^ 2)) ^ r * 3 ^ (r - 1) := by
+              have hs' : s ^ (2 * r - 1) * s = (s ^ 2) ^ r := by
+                rw [← pow_succ, ← pow_mul]
+                congr 1
+                omega
+              calc ((3 * W'.card) ^ r * 3 ^ (r - 1) * s ^ (2 * r - 1)) * (12 ^ r * s)
+                  = (3 * W'.card) ^ r * 12 ^ r * (s ^ (2 * r - 1) * s)
+                      * 3 ^ (r - 1) := by ring
+                _ = (3 * W'.card) ^ r * 12 ^ r * (s ^ 2) ^ r * 3 ^ (r - 1) := by
+                    rw [hs']
+                _ = (W'.card * (36 * s ^ 2)) ^ r * 3 ^ (r - 1) := by
+                    rw [show W'.card * (36 * s ^ 2) = (3 * W'.card) * (12 * s ^ 2) from
+                          by ring,
+                      mul_pow, mul_pow]
+                    ring
+      exact (Nat.pow_le_pow_iff_left (by omega : r ≠ 0)).mp
+        (Nat.le_of_mul_le_mul_right hfin (Nat.pow_pos (by omega : 0 < 3)))
 
 end SimpleGraph
