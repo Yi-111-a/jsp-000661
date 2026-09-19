@@ -1,4 +1,12 @@
-# Draft claim for JSP-000661 (do NOT submit before owner approval)
+# Claim record for JSP-000661 (submitted 2026-09-19 with owner approval)
+
+Submitted:
+
+- Catalog correction PR: https://github.com/TheJustinSunPrize/awards/pull/1630
+- Award claim issue: https://github.com/TheJustinSunPrize/awards/issues/1631
+
+Both are pending maintainer review; submission does not imply acceptance or
+award confirmation.
 
 Award claim form fields (see awards/CONTRIBUTING.md):
 
