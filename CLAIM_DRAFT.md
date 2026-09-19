@@ -40,8 +40,8 @@ build harness). Repository owner `Yi-111-a` matches the submitting GitHub
 account.
 
 ## Follow-up contact email
-<TO BE FILLED BY OWNER — a public correspondence address>
+2352737128@qq.com
 
 ## Identity verification method
-Repository-owner/GitHub-account match per CONTRIBUTING.md; otherwise
-<TO BE FILLED BY OWNER if required>
+Repository-owner/GitHub-account match per CONTRIBUTING.md (submitting account
+`Yi-111-a` owns the proof repository `Yi-111-a/jsp-000661`).
